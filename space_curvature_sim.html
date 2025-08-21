@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Curvature Simulation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <h3 style="margin-top: 0; color: #64b5f6; text-align: center;">Space Curvature Simulation</h3>
+            
+            <div class="control-group">
+                <label>Simulation Speed</label>
+                <input type="range" id="speedSlider" min="0" max="30" value="1" step="0.5">
+                <span id="speedValue">1.0x</span>
+            </div>
+
+            <div class="control-group">
+                <label>Gravity Strength</label>
+                <input type="range" id="gravitySlider" min="0" max="30" value="0.5" step="0.1">
+                <span id="gravityValue">0.5</span>
+            </div>
+
+            <div class="button-group">
+                <button id="pauseBtn">⏸️ Pause</button>
+                <button id="resetBtn">🔄 Reset</button>
+            </div>
+
+            <div class="control-group">
+                <label>Add New Body</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="font-size: 12px;">Mass:</label>
+                    <input type="number" id="massInput" value="50" min="10" max="5000">
+                    <button id="addBodyBtn">➕ Add</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Bodies</label>
+                <div id="bodyList" class="body-list"></div>
+            </div>
+        </div>
+
+        <div id="info">
+            🖱️ Left drag: rotate • Right drag: pan • 🔄 Scroll: zoom<br>
+            ⚡ Bodies bounce off boundaries and each other realistically!
+        </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
