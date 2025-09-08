@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+import * as THREE from './three.module.js';
 import { config } from './config.js';
 
 export function resolveCollision(bodyA, bodyB, distance, minDistance, tempSeparationVector, tempRelativeVelocity, tempImpulse) {
@@ -123,17 +123,5 @@ export function debounce(func, delay) {
         const context = this;
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), delay);
-    };
-}
-
-export function throttle(func, limit) {
-    let inThrottle;
-    return function(...args) {
-        const context = this;
-        if (!inThrottle) {
-            func.apply(context, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
     };
 }

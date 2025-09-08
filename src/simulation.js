@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+import * as THREE from './three.module.js';
 import { Body } from './body.js';
 import { setupControls } from './controls.js';
 import { resolveCollision, checkBoundaryCollisions } from './utils.js';
@@ -17,8 +17,6 @@ export class SpaceCurvatureSimulation {
         this.simulationSpeed = this.config.simulation.initialSpeed;
         this.isPaused = false;
         
-        this.mouse = { x: 0, y: 0 };
-        this.isDragging = false;
         this.previousMouse = { x: 0, y: 0 };
         this.cameraDistance = this.config.camera.initialDistance;
         this.cameraTheta = this.config.camera.initialTheta;
@@ -170,11 +168,9 @@ export class SpaceCurvatureSimulation {
                 }
             }
 
-            // Update velocity and position
             const oldPosition = bodyA.mesh.position.clone(); // Store old position for grid update
             bodyA.velocity.add(this.tempForce.multiplyScalar(deltaTime * this.simulationSpeed));
-            this.tempVelocity.copy(bodyA.velocity).multiplyScalar(deltaTime * this.simulationSpeed);
-            bodyA.mesh.position.add(this.tempVelocity);
+            bodyA.mesh.position.add(this.tempVelocity.copy(bodyA.velocity).multiplyScalar(deltaTime * this.simulationSpeed));
 
             // Check boundary collisions
             checkBoundaryCollisions(bodyA, this.boundarySize);
@@ -210,13 +206,28 @@ export class SpaceCurvatureSimulation {
         this.bodies.forEach((body, index) => {
             const item = document.createElement('div');
             item.className = 'body-item';
-            item.innerHTML = `
-                <span>Body ${index + 1} (m=${body.mass})</span>
-                <label class="static-checkbox-container">
-                    <input type="checkbox" ${body.isStatic ? 'checked' : ''} onchange="simulation.toggleBodyStatic(${body.id})"> Static
-                </label>
-                <button onclick="simulation.removeBody(${body.id})">🗑️</button>
-            `;
+
+            const label = document.createElement('span');
+            label.textContent = `Body ${index + 1} (m=${body.mass})`;
+            item.appendChild(label);
+
+            const staticCheckboxContainer = document.createElement('label');
+            staticCheckboxContainer.className = 'static-checkbox-container';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = body.isStatic;
+            checkbox.addEventListener('change', () => this.toggleBodyStatic(body.id));
+
+            staticCheckboxContainer.appendChild(checkbox);
+            staticCheckboxContainer.appendChild(document.createTextNode(' Static'));
+            item.appendChild(staticCheckboxContainer);
+
+            const removeButton = document.createElement('button');
+            removeButton.textContent = '🗑️';
+            removeButton.addEventListener('click', () => this.removeBody(body.id));
+            item.appendChild(removeButton);
+
             bodyList.appendChild(item);
 
             // Apply emissive color immediately if body is static
@@ -237,7 +248,7 @@ export class SpaceCurvatureSimulation {
 
         // Recreate initial setup
         this.createInitialBodies();
-        this.isPaused = true;
+        this.isPaused = false;
         document.getElementById('pauseBtn').textContent = '⏸️ Pause';
     }
 

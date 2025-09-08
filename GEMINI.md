@@ -4,7 +4,7 @@
 
 This project is a web-based 3D gravity simulation that visualizes the curvature of space caused by massive objects. It's built using vanilla JavaScript, HTML, and CSS, with the Three.js library for 3D rendering. The simulation allows users to add and remove celestial bodies, adjust simulation parameters like gravity and speed, and interact with the 3D scene.
 
-The application's entry point is `space_curvature_sim.html`, which sets up the user interface and a canvas for the simulation. The core logic is modular, with different files handling specific aspects of the simulation:
+The application's entry point is `index.html`, which sets up the user interface and a canvas for the simulation. The core logic is modular, with different files handling specific aspects of the simulation:
 
 - **`src/main.js`**: Initializes the simulation.
 - **`src/simulation.js`**: The main simulation class that manages the scene, bodies, physics, and rendering loop.
@@ -15,7 +15,7 @@ The application's entry point is `space_curvature_sim.html`, which sets up the u
 
 ## Building and Running
 
-This is a client-side-only project. To run the simulation, you can simply open the `space_curvature_sim.html` file in a modern web browser. No build process is required.
+This is a client-side-only project. To run the simulation, you can simply open the `index.html` file in a modern web browser. No build process is required.
 
 For development, it's recommended to use a local web server to avoid potential issues with browser security policies (e.g., CORS). You can use any simple web server, such as Python's built-in `http.server`:
 

@@ -6,7 +6,6 @@ export class Body {
         this.id = Date.now() + Math.random();
         this.mass = mass;
         this.velocity = new THREE.Vector3(0, 0, 0);
-        this.trail = [];
 
         const radius = Math.max(1, Math.abs(mass) ** .7 / 15.);
         const geometry = new THREE.SphereGeometry(radius, 16, 16);
