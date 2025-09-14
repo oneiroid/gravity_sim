@@ -84,36 +84,30 @@ export function resolveCollision(bodyA, bodyB, distance, minDistance, tempSepara
 }
 
 export function checkBoundaryCollisions(body, boundarySize) {
+    // Spherical boundary collision: reflect velocity when a body exceeds the sphere radius
     const pos = body.mesh.position;
     const vel = body.velocity;
     const radius = body.mesh.geometry.parameters.radius;
     const damping = config.bodies.damping; // Energy loss on bounce
 
-    // Check X boundaries
-    if (pos.x + radius > boundarySize) {
-        pos.x = boundarySize - radius;
-        vel.x = -Math.abs(vel.x) * damping;
-    } else if (pos.x - radius < -boundarySize) {
-        pos.x = -boundarySize + radius;
-        vel.x = Math.abs(vel.x) * damping;
-    }
+    const distFromCenter = pos.length();
+    const allowed = boundarySize - radius;
 
-    // Check Y boundaries
-    if (pos.y + radius > boundarySize) {
-        pos.y = boundarySize - radius;
-        vel.y = -Math.abs(vel.y) * damping;
-    } else if (pos.y - radius < -boundarySize) {
-        pos.y = -boundarySize + radius;
-        vel.y = Math.abs(vel.y) * damping;
-    }
+    if (distFromCenter > allowed) {
+        // Use a unit normal for calculations; avoid mutating it before dot()
+        const unitNormal = pos.clone().normalize();
 
-    // Check Z boundaries
-    if (pos.z + radius > boundarySize) {
-        pos.z = boundarySize - radius;
-        vel.z = -Math.abs(vel.z) * damping;
-    } else if (pos.z - radius < -boundarySize) {
-        pos.z = -boundarySize + radius;
-        vel.z = Math.abs(vel.z) * damping;
+        // Compute velocity component along the normal using the unit normal
+        const vDotN = vel.dot(unitNormal);
+
+        // Reflect velocity across the normal: v' = v - 2*(v·n)*n
+        const reflected = vel.clone().sub(unitNormal.clone().multiplyScalar(2 * vDotN));
+
+        // Apply damping to reduce kinetic energy
+        vel.copy(reflected.multiplyScalar(damping));
+
+        // Project position back to the allowed surface along the radial direction
+        pos.copy(unitNormal.multiplyScalar(allowed));
     }
 }
 

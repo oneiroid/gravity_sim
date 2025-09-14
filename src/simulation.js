@@ -59,8 +59,20 @@ export class SpaceCurvatureSimulation {
         directionalLight.castShadow = true;
         this.scene.add(directionalLight);
 
-        // Add bounding cube
-        this.createBoundingCube();
+        // Add bounding sphere (visual wireframe)
+        this.boundaryMesh = this.createBoundingCube();
+
+        // Add a simple toggle button to show/hide the boundary if container exists
+        const container = document.getElementById('container');
+        if (container) {
+            const btn = document.createElement('button');
+            btn.textContent = 'Toggle Boundary';
+            btn.style.position = 'absolute';
+            btn.style.top = '10px';
+            btn.style.right = '10px';
+            btn.addEventListener('click', () => this.toggleBoundaryVisibility());
+            container.appendChild(btn);
+        }
 
         // Window resize listener
         window.addEventListener('resize', () => {
@@ -70,17 +82,28 @@ export class SpaceCurvatureSimulation {
         });
     }
 
+    // NOTE: kept the name for backward compatibility; this now creates a subtle spherical wireframe
+    // Returns the created mesh so callers can toggle visibility
     createBoundingCube() {
-        const size = this.boundarySize * 2;
-        const geometry = new THREE.BoxGeometry(size, size, size);
-        const edges = new THREE.EdgesGeometry(geometry);
-        const material = new THREE.LineBasicMaterial({ 
-            color: 0x64b5f6, 
-            transparent: false, 
-            opacity: 1.0 
+        const radius = this.boundarySize;
+        // Lower segment counts to reduce visual clutter
+        const geometry = new THREE.SphereGeometry(radius, 12, 10);
+        const wire = new THREE.WireframeGeometry(geometry);
+        const material = new THREE.LineBasicMaterial({
+            color: 0x64b5f6,
+            transparent: true,
+            opacity: 0.18
         });
-        const wireframe = new THREE.LineSegments(edges, material);
+        const wireframe = new THREE.LineSegments(wire, material);
+        // Slightly prefer rendering the wireframe behind objects by disabling depthWrite
+        wireframe.material.depthWrite = false;
         this.scene.add(wireframe);
+        return wireframe;
+    }
+
+    toggleBoundaryVisibility() {
+        if (!this.boundaryMesh) return;
+        this.boundaryMesh.visible = !this.boundaryMesh.visible;
     }
 
     createInitialBodies() {
@@ -96,6 +119,13 @@ export class SpaceCurvatureSimulation {
         }
 
         const body = new Body(x, y, z, mass, color, isStatic);
+        // Clamp newly created bodies inside the spherical boundary so they don't spawn outside
+        const allowed = this.boundarySize - body.mesh.geometry.parameters.radius;
+        const dist = body.mesh.position.length();
+        if (dist > allowed) {
+            body.mesh.position.copy(body.mesh.position.clone().normalize().multiplyScalar(allowed));
+        }
+
         this.scene.add(body.mesh);
         this.bodies.push(body);
         this.spatialGrid.add(body); // Add body to spatial grid
