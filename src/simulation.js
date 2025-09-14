@@ -165,6 +165,9 @@ export class SpaceCurvatureSimulation {
                 
                 if (distance < minDistance) {
                     resolveCollision(bodyA, bodyB, distance, minDistance, this.tempSeparationVector, this.tempRelativeVelocity, this.tempImpulse);
+                    // After collision resolution bodies may have been moved — keep spatial grid in sync
+                    this.spatialGrid.update(bodyA);
+                    this.spatialGrid.update(bodyB);
                 }
             }
         }
@@ -187,26 +190,28 @@ export class SpaceCurvatureSimulation {
             for (let j = 0; j < this.bodies.length; j++) {
                 if (i !== j) {
                     const bodyB = this.bodies[j];
-                    const distance = bodyA.mesh.position.distanceTo(bodyB.mesh.position);
-                    
-                    if (distance > 0.1) {
-                        const forceMagnitude = (this.G * bodyA.mass * bodyB.mass) / (distance * distance + this.config.simulation.softeningFactor * this.config.simulation.softeningFactor);
-                        this.tempDirection.subVectors(bodyB.mesh.position, bodyA.mesh.position).normalize();
-                        
+                    // Use reusable separation vector to avoid allocations
+                    this.tempSeparationVector.subVectors(bodyB.mesh.position, bodyA.mesh.position);
+                    const distSq = this.tempSeparationVector.lengthSq();
+                    // small epsilon to avoid numerical blowup or self-interaction
+                    if (distSq > 1e-4) {
+                        const soft = this.config.simulation.softeningFactor;
+                        const forceMagnitude = (this.G * bodyA.mass * bodyB.mass) / (distSq + soft * soft);
+                        this.tempDirection.copy(this.tempSeparationVector).normalize();
+                        // tempForce accumulates acceleration (force/mass)
                         this.tempForce.add(this.tempDirection.multiplyScalar(forceMagnitude / bodyA.mass));
                     }
                 }
             }
 
-            const oldPosition = bodyA.mesh.position.clone(); // Store old position for grid update
             bodyA.velocity.add(this.tempForce.multiplyScalar(deltaTime * this.simulationSpeed));
             bodyA.mesh.position.add(this.tempVelocity.copy(bodyA.velocity).multiplyScalar(deltaTime * this.simulationSpeed));
 
             // Check boundary collisions
             checkBoundaryCollisions(bodyA, this.boundarySize);
 
-            // Update body in spatial grid if its cell has changed
-            this.spatialGrid.update(bodyA, oldPosition);
+            // Update body in spatial grid (position changed)
+            this.spatialGrid.update(bodyA);
         }
 
         // Check body-to-body collisions

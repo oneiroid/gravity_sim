@@ -17,26 +17,15 @@ export function resolveCollision(bodyA, bodyB, distance, minDistance, tempSepara
     }
     
     // Move bodies apart proportionally to their masses (lighter body moves more)
-    // Only move non-static bodies
-    const totalMass = bodyA.mass + bodyB.mass;
-    let moveA, moveB;
-
-    if (totalMass === 0) { // Special case: masses cancel out, separate equally
-        moveA = overlap * 0.5;
-        moveB = overlap * 0.5;
-    } else {
-        // Use absolute masses for separation proportion to avoid issues with negative mass ratios
-        const absMassA = Math.abs(bodyA.mass);
-        const absMassB = Math.abs(bodyB.mass);
-        const absTotalMass = absMassA + absMassB;
-
-        if (absTotalMass === 0) { // Should not happen if not both static, but safeguard
-            moveA = overlap * 0.5;
-            moveB = overlap * 0.5;
-        } else {
-            moveA = overlap * (absMassB / absTotalMass) * 0.5;
-            moveB = overlap * (absMassA / absTotalMass) * 0.5;
-        }
+    // Only move non-static bodies. Use absolute masses to compute ratios and guard against zero.
+    const absMassA = Math.abs(bodyA.mass);
+    const absMassB = Math.abs(bodyB.mass);
+    const absTotalMass = absMassA + absMassB;
+    let moveA = overlap * 0.5;
+    let moveB = overlap * 0.5;
+    if (absTotalMass > 1e-9) {
+        moveA = overlap * (absMassB / absTotalMass) * 0.5;
+        moveB = overlap * (absMassA / absTotalMass) * 0.5;
     }
     
     if (!bodyA.isStatic) {
@@ -48,38 +37,38 @@ export function resolveCollision(bodyA, bodyB, distance, minDistance, tempSepara
     
     // Calculate collision response using conservation of momentum
     tempRelativeVelocity.subVectors(bodyB.velocity, bodyA.velocity);
-    
-    const velocityAlongNormal = tempRelativeVelocity.dot(tempSeparationVector);
-    
-    // Don't resolve if velocities are separating
-    if (velocityAlongNormal > 0) return;
-    
-    // Calculate restitution (bounciness) - somewhat elastic
-    const restitution = config.bodies.restitution;
-    
-    // Calculate impulse scalar
-    let impulseScalar = -(1 + restitution) * velocityAlongNormal;
-    
-    // Adjust impulse scalar based on static bodies and handle problematic inverse masses
-    let totalInverseMass = 0;
-    if (!bodyA.isStatic) totalInverseMass += (1 / bodyA.mass);
-    if (!bodyB.isStatic) totalInverseMass += (1 / bodyB.mass);
 
-    // If totalInverseMass is zero or very close to zero, skip impulse application
-    if (Math.abs(totalInverseMass) < 1e-9) { // Use a small epsilon for comparison
-        return; 
+    const velocityAlongNormal = tempRelativeVelocity.dot(tempSeparationVector);
+
+    // Don't resolve if velocities are separating (moving apart)
+    if (velocityAlongNormal > 0) return;
+
+    // Calculate restitution (bounciness)
+    const restitution = config.bodies.restitution;
+
+    // Calculate impulse scalar (numerator)
+    let impulseScalar = -(1 + restitution) * velocityAlongNormal;
+
+    // Compute total inverse mass, guarding against zero/negative masses
+    let totalInverseMass = 0;
+    if (!bodyA.isStatic && Math.abs(bodyA.mass) > 1e-9) totalInverseMass += 1 / Math.abs(bodyA.mass);
+    if (!bodyB.isStatic && Math.abs(bodyB.mass) > 1e-9) totalInverseMass += 1 / Math.abs(bodyB.mass);
+
+    if (totalInverseMass <= 1e-9) {
+        // Can't apply impulse sensibly (very heavy or zero-mass bodies) — bail out
+        return;
     }
-    
+
     impulseScalar /= totalInverseMass;
-    
-    // Apply impulse
+
+    // Apply impulse along the collision normal
     tempImpulse.copy(tempSeparationVector).multiplyScalar(impulseScalar);
-    
-    if (!bodyA.isStatic) {
-        bodyA.velocity.add(tempImpulse.clone().multiplyScalar(-1/bodyA.mass));
+
+    if (!bodyA.isStatic && Math.abs(bodyA.mass) > 1e-9) {
+        bodyA.velocity.add(tempImpulse.clone().multiplyScalar(-1 / Math.abs(bodyA.mass)));
     }
-    if (!bodyB.isStatic) {
-        bodyB.velocity.add(tempImpulse.clone().multiplyScalar(1/bodyB.mass));
+    if (!bodyB.isStatic && Math.abs(bodyB.mass) > 1e-9) {
+        bodyB.velocity.add(tempImpulse.clone().multiplyScalar(1 / Math.abs(bodyB.mass)));
     }
 }
 
